@@ -51,7 +51,6 @@
 #include <stdint.h>
 #include <stdio.h>
 
-
 #include "nordic_common.h"
 #include "bsp.h"
 #include "nrf_soc.h"
@@ -65,7 +64,6 @@
 
 #include "nrf_delay.h"
 #include "nrf.h"
-
 
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
@@ -94,14 +92,12 @@
 #include "ble_nus.h"
 #include "ble_advertising.h"
 
-
 #if defined (UART_PRESENT)
 #include "nrf_uart.h"
 #endif
 #if defined (UARTE_PRESENT)
 #include "nrf_uarte.h"
 #endif
-
 
 #define APP_BLE_CONN_CFG_TAG            1                                  /**< A tag identifying the SoftDevice BLE configuration. */
 
@@ -121,9 +117,7 @@
 
 #define APP_BEACON_UUID                 0x01, 0x12						/**< Proprietary UUID for Beacon. */
 
-
 #define DEAD_BEEF                       0xDEADBEEF                         /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
-
 
 #define DEVICE_NAME                     "COMOTRIAL"                       /**< Name of device. Will be included in the advertising data. */
 #define APP_ADV_INTERVAL                300                                     /**< The advertising interval (in units of 0.625 ms. This value corresponds to 187.5 ms). */
@@ -150,176 +144,174 @@
 #define SEC_PARAM_MIN_KEY_SIZE          7                                       /**< Minimum encryption key size. */
 #define SEC_PARAM_MAX_KEY_SIZE          16                                      /**< Maximum encryption key size. */
 
-static uint16_t   m_ble_nus_max_data_len = BLE_GATT_ATT_MTU_DEFAULT - 3;            /**< Maximum length of data (in bytes) that can be transmitted to the peer by the Nordic UART service module. */
-
-
+static uint16_t m_ble_nus_max_data_len = BLE_GATT_ATT_MTU_DEFAULT - 3; /**< Maximum length of data (in bytes) that can be transmitted to the peer by the Nordic UART service module. */
 
 #if defined(USE_UICR_FOR_MAJ_MIN_VALUES)
 #define MAJ_VAL_OFFSET_IN_BEACON_INFO   18                                 /**< Position of the MSB of the Major Value in m_beacon_info array. */
 #define UICR_ADDRESS                    0x10001080                         /**< Address of the UICR register used by this example. The major and minor versions to be encoded into the advertising data will be picked up from this location. */
 #endif
 
-
 #define MAX_TEST_DATA_BYTES     (15U)                /**< max number of test bytes to be used for tx and rx. */
 #define UART_TX_BUF_SIZE 256                         /**< UART TX buffer size. */
 #define UART_RX_BUF_SIZE 256                         /**< UART RX buffer size. */
 
-
-static ble_gap_adv_params_t m_adv_params;                                  /**< Parameters to be passed to the stack when starting advertising. */
-static uint8_t              m_adv_handle = BLE_GAP_ADV_SET_HANDLE_NOT_SET; /**< Advertising handle used to identify an advertising set. */
-static uint8_t              m_enc_advdata[BLE_GAP_ADV_SET_DATA_SIZE_MAX];  /**< Buffer for storing an encoded advertising set. */
+static ble_gap_adv_params_t m_adv_params; /**< Parameters to be passed to the stack when starting advertising. */
+static uint8_t m_adv_handle = BLE_GAP_ADV_SET_HANDLE_NOT_SET; /**< Advertising handle used to identify an advertising set. */
+static uint8_t m_enc_advdata[BLE_GAP_ADV_SET_DATA_SIZE_MAX]; /**< Buffer for storing an encoded advertising set. */
 static ble_advdata_t advdata;
 
 static void advertisement_update(void);
 static void advertising_start(void);
 
-
-static uint8_t m_beacon_info[APP_BEACON_INFO_LENGTH] =                    /**< Information advertised by the Beacon. */
+static uint8_t m_beacon_info[APP_BEACON_INFO_LENGTH] = /**< Information advertised by the Beacon. */
 {
-    APP_DEVICE_TYPE,     // Manufacturer specific information. Specifies the device type in this
-                         // implementation.
-    APP_ADV_DATA_LENGTH, // Manufacturer specific information. Specifies the length of the
-                         // manufacturer specific data in this implementation.
-    APP_BEACON_UUID,     // 4 bit UUID value.
-    APP_MAJOR_VALUE,     // Major arbitrary value that can be used to distinguish between Beacons.
-    APP_MINOR_VALUE,     // Minor arbitrary value that can be used to distinguish between Beacons.
-    APP_MEASURED_RSSI    // Manufacturer specific information. The Beacon's measured TX power in                      // this implementation.
-};
+APP_DEVICE_TYPE, // Manufacturer specific information. Specifies the device type in this
+				 // implementation.
+		APP_ADV_DATA_LENGTH, // Manufacturer specific information. Specifies the length of the
+							 // manufacturer specific data in this implementation.
+		APP_BEACON_UUID,     // 4 bit UUID value.
+		APP_MAJOR_VALUE, // Major arbitrary value that can be used to distinguish between Beacons.
+		APP_MINOR_VALUE, // Minor arbitrary value that can be used to distinguish between Beacons.
+		APP_MEASURED_RSSI // Manufacturer specific information. The Beacon's measured TX power in                      // this implementation.
+		};
 
 /**@brief Struct that contains pointers to the encoded advertising data. */
-static ble_gap_adv_data_t m_adv_data =
-{
-    .adv_data =
-    {
-        .p_data = m_enc_advdata,
-        .len    = BLE_GAP_ADV_SET_DATA_SIZE_MAX
-    },
-    .scan_rsp_data =
-    {
-        .p_data = NULL,
-        .len    = 0
+static ble_gap_adv_data_t m_adv_data = { .adv_data = { .p_data = m_enc_advdata,
+		.len = BLE_GAP_ADV_SET_DATA_SIZE_MAX }, .scan_rsp_data = { .p_data =
+		NULL, .len = 0
 
-    }
-};
+} };
 
 #define PRINTF_USES_UART
 #ifdef PRINTF_USES_UART
-int _write(int file, char *ptr, int len){
+int _write(int file, char *ptr, int len) {
 
-    int i=0;
-    uint8_t cr;
-    for(i=0 ; i<len ; i++) {
-        cr = *ptr++;
-        while(app_uart_put(cr) != NRF_SUCCESS);
-    }
-    return len;
+	int i = 0;
+	uint8_t cr;
+	for (i = 0; i < len; i++) {
+		cr = *ptr++;
+		while (app_uart_put(cr) != NRF_SUCCESS)
+			;
+	}
+	return len;
 }
 #endif
 
 void setData();
 
-void uart_error_handle(app_uart_evt_t * p_event)
-{
-    if (p_event->evt_type == APP_UART_COMMUNICATION_ERROR)
-    {
-        APP_ERROR_HANDLER(p_event->data.error_communication);
-    }
-    else if (p_event->evt_type == APP_UART_FIFO_ERROR)
-    {
-        APP_ERROR_HANDLER(p_event->data.error_code);
-    }
+void uart_error_handle(app_uart_evt_t *p_event) {
+	if (p_event->evt_type == APP_UART_COMMUNICATION_ERROR) {
+		APP_ERROR_HANDLER(p_event->data.error_communication);
+	} else if (p_event->evt_type == APP_UART_FIFO_ERROR) {
+		APP_ERROR_HANDLER(p_event->data.error_code);
+	}
 }
 
+long strtolong(uint8_t *str){
+	uint8_t nums[6];
+	for(int i = 0; i < 7; i++){
+		nums[i]= str[i] - 48;
+	}
 
-void uart_event_handle(app_uart_evt_t * p_event)
-{
-    static uint8_t data_array[BLE_NUS_MAX_DATA_LEN];
-    static uint8_t index = 0;
-    uint32_t err_code;
+	return nums[5] + (nums[4] *10) + (nums[3] *100) + (nums[2] *1000) + (nums[1] *10000) + (nums[0] *100000);
+}
 
-    switch (p_event->evt_type)
-    {
-        case APP_UART_DATA_READY:
-            UNUSED_VARIABLE(app_uart_get(&data_array[index]));
-            index++;
+void uart_event_handle(app_uart_evt_t *p_event) {
+	static uint8_t data_array[BLE_NUS_MAX_DATA_LEN];
+	static uint8_t index = 0;
+	uint32_t err_code;
 
-            if ((data_array[index - 1] == '\n') ||
-                (data_array[index - 1] == '\r') ||
-                (index >= 12))
-            {
-            	printf("data ready\r\n");
+	switch (p_event->evt_type) {
+	case APP_UART_DATA_READY:
+		UNUSED_VARIABLE(app_uart_get(&data_array[index]));
+		index++;
 
-                if (index > 1)
-                {
-                	printf("patates\r\n");
-                	data_array[index+1] = 0;
-                	printf("dat: %s\r\n",data_array);
+		if ((data_array[index - 1] == '\n') || (data_array[index - 1] == '\r')
+				|| index > 15) {
+		//	printf("data ready\r\n");
 
-                	//is data numeric
-                	uint8_t isNumeric = 1;
-                	for(int i = 0; i < 12; i++){
-                		printf("no %d\r\n",data_array[i]);
-                		if(!(data_array[i] >= 48 && data_array[i] <=57)){
-                			isNumeric = 0;
+			if (index >= 14) {
+				//printf("patates\r\n");
+				data_array[index + 1] = 0;
 
-                		}
+				//is data numeric
+				uint8_t isNumeric = 1;
+				for (int i = 0; i < 14; i++) {
+					printf("no %d\r\n", data_array[i]);
+					if (!((data_array[i] >= 48 && data_array[i] <= 57) || data_array[i] == '-' || data_array[i] == '+')) {
+						isNumeric = 0;
+						printf("errn");
+					}
 
-                	}
-                	char temp[6];
-                	if(isNumeric == 1){
-                		memcpy(temp, data_array,6);
-                		long x = strtol(temp,NULL,16);
-                		memcpy(temp, data_array+6,6);
-                		long y = strtol(data_array,NULL,16);
+				}
+				char temp[7];
+				temp[6] = 0;
+				if (isNumeric == 1) {
+					printf("numeric\r\n");
+					memcpy(temp, data_array + 1, 6);
+					//long x = strtol(temp, NULL, 16);
+					long x = strtolong(temp);
+					memcpy(temp, data_array + 8, 6);
 
-                		if(x <= 180000 && x >= 0 && y <= 180000 && y >= 0){  	//check coorsinates are good
-                    		uint8_t *px = &x;
-                    		uint8_t *py = &y;
-                    		for(int i  = 0; i < 3; i++){
-                    			m_beacon_info[9+i] = *(px+i);
-                    			m_beacon_info[12+i] = *(py+i);
-                    		}
-                    		printf("m: %d\r\n",m_beacon_info[9]);
+					//long y = strtol(temp, NULL, 16);
+					long y = strtolong(temp);
+					printf("elma4\r\n");
 
-                        	err_code = sd_ble_gap_adv_stop(m_adv_handle);
-                            APP_ERROR_CHECK(err_code);
+					if(data_array[0]== '-')
+						x = -1 * x;
+					if(data_array[7] == '-')
+						y = -1 * y;
 
-                            err_code = ble_advdata_encode(&advdata, m_adv_data.adv_data.p_data, &m_adv_data.adv_data.len);
-                            APP_ERROR_CHECK(err_code);
-                            printf("kivi\r\n");
+					printf("x: %x  y: %x\r\n", x, y);
 
-                            err_code = sd_ble_gap_adv_set_configure(&m_adv_handle, &m_adv_data, &m_adv_params);
-                            APP_ERROR_CHECK(err_code);
-                            printf("updated\r\n");
+					if (x <= 180000l && x >= -180000 && y <= 180000l && y >= -180000) { //check coorsinates are good
+						printf("portakal\r\n");
 
-                            advertising_start();
+						uint8_t *px = &x;
+						uint8_t *py = &y;
+						for (int i = 0; i < 4; i++) {
+							m_beacon_info[9 + i] = *(px + i);
+							m_beacon_info[13 + i] = *(py + i);
+						}
+						//printf("m: %d\r\n",m_beacon_info[9]);
 
-                		}
-                	}
-                }
+						err_code = sd_ble_gap_adv_stop(m_adv_handle);
+						APP_ERROR_CHECK(err_code);
 
-                index = 0;
-            }
-            break;
+						err_code = ble_advdata_encode(&advdata,
+								m_adv_data.adv_data.p_data,
+								&m_adv_data.adv_data.len);
+						APP_ERROR_CHECK(err_code);
 
-        case APP_UART_COMMUNICATION_ERROR:
-            APP_ERROR_HANDLER(p_event->data.error_communication);
-            break;
+						err_code = sd_ble_gap_adv_set_configure(&m_adv_handle,
+								&m_adv_data, &m_adv_params);
+						APP_ERROR_CHECK(err_code);
+						printf("updated\r\n");
 
-        case APP_UART_FIFO_ERROR:
-            APP_ERROR_HANDLER(p_event->data.error_code);
-            break;
+						advertising_start();
 
-        default:
-            break;
-    }
+					}
+				}
+			}
+
+			index = 0;
+			printf("reset\r\n");
+		}
+		break;
+
+	case APP_UART_COMMUNICATION_ERROR:
+		APP_ERROR_HANDLER(p_event->data.error_communication);
+		break;
+
+	case APP_UART_FIFO_ERROR:
+		APP_ERROR_HANDLER(p_event->data.error_code);
+		break;
+
+	default:
+		break;
+	}
 }
 /**@snippet [Handling the data received over UART] */
-
-
-
-
-
 
 /**@brief Callback function for asserts in the SoftDevice.
  *
@@ -332,9 +324,8 @@ void uart_event_handle(app_uart_evt_t * p_event)
  * @param[in]   line_num   Line number of the failing ASSERT call.
  * @param[in]   file_name  File name of the failing ASSERT call.
  */
-void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name)
-{
-    app_error_handler(DEAD_BEEF, line_num, p_file_name);
+void assert_nrf_callback(uint16_t line_num, const uint8_t *p_file_name) {
+	app_error_handler(DEAD_BEEF, line_num, p_file_name);
 }
 
 /**@brief Function for initializing the Advertising functionality.
@@ -342,85 +333,59 @@ void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name)
  * @details Encodes the required advertising data and passes it to the stack.
  *          Also builds a structure to be passed to the stack when starting advertising.
  */
-static void advertising_init(void)
-{
+static void advertising_init(void) {
 
-    uint32_t      err_code;
-    uint8_t flags = BLE_GAP_ADV_FLAG_BR_EDR_NOT_SUPPORTED;
+	uint32_t err_code;
+	uint8_t flags = BLE_GAP_ADV_FLAG_BR_EDR_NOT_SUPPORTED;
 
-    ble_advdata_manuf_data_t manuf_specific_data;
-    //ble_advdata_t advdata;
+	ble_advdata_manuf_data_t manuf_specific_data;
+	//ble_advdata_t advdata;
 
+	manuf_specific_data.company_identifier = APP_COMPANY_IDENTIFIER;
+	manuf_specific_data.data.p_data = (uint8_t*) m_beacon_info;
+	manuf_specific_data.data.size = 9 + 7;
 
-    manuf_specific_data.company_identifier = APP_COMPANY_IDENTIFIER;
-    manuf_specific_data.data.p_data = (uint8_t *) m_beacon_info;
-    manuf_specific_data.data.size   = 9+8;
+	// Build and set advertising data.
+	memset(&advdata, 0, sizeof(advdata));
 
-    // Build and set advertising data.
-    memset(&advdata, 0, sizeof(advdata));
+	advdata.name_type = BLE_ADVDATA_FULL_NAME; //BLE_ADVDATA_NO_NAME;//BLE_ADVDATA_FULL_NAME; //BLE_ADVDATA_NO_NAME;
+	//advdata.flags                 = flags;
+	advdata.short_name_len = 6;
+	advdata.p_manuf_specific_data = &manuf_specific_data;
 
-    advdata.name_type             = BLE_ADVDATA_FULL_NAME; //BLE_ADVDATA_NO_NAME;//BLE_ADVDATA_FULL_NAME; //BLE_ADVDATA_NO_NAME;
-    //advdata.flags                 = flags;
-    advdata.short_name_len = 6;
-    advdata.p_manuf_specific_data = &manuf_specific_data;
+	// Initialize advertising parameters (used when starting advertising).
+	memset(&m_adv_params, 0, sizeof(m_adv_params));
 
-    // Initialize advertising parameters (used when starting advertising).
-    memset(&m_adv_params, 0, sizeof(m_adv_params));
+	m_adv_params.properties.type =
+			BLE_GAP_ADV_TYPE_NONCONNECTABLE_NONSCANNABLE_UNDIRECTED;
+	m_adv_params.p_peer_addr = NULL;    // Undirected advertisement.
+	m_adv_params.filter_policy = BLE_GAP_ADV_FP_ANY;
+	m_adv_params.interval = NON_CONNECTABLE_ADV_INTERVAL;
+	m_adv_params.duration = 0;       // Never time out.
 
-    m_adv_params.properties.type = BLE_GAP_ADV_TYPE_NONCONNECTABLE_NONSCANNABLE_UNDIRECTED;
-    m_adv_params.p_peer_addr     = NULL;    // Undirected advertisement.
-    m_adv_params.filter_policy   = BLE_GAP_ADV_FP_ANY;
-    m_adv_params.interval        = NON_CONNECTABLE_ADV_INTERVAL;
-    m_adv_params.duration        = 0;       // Never time out.
-
+	memset(m_beacon_info+9,0,8);
 //    m_enc_advdata[0] = 0x02;
 //    m_enc_advdata[1] = BLE_GAP_AD_TYPE_FLAGS;
 //    m_enc_advdata[2] = 0x11;
 //    m_enc_advdata[3] = 0x22;
 //    m_enc_advdata[4] = 0x33;
-	m_beacon_info[10] = 'A';
-	m_beacon_info[11] = 'A';
-	m_beacon_info[12] = 'A';
-	m_beacon_info[13] = 'A';
-	m_beacon_info[14] = 'A';
-	m_beacon_info[15] = 'A';
-	m_beacon_info[16] = 'A';
+//	m_beacon_info[10] = 0;
+//	m_beacon_info[11] = 0;
+//	m_beacon_info[12] = 'A';
+//	m_beacon_info[13] = 'A';
+//	m_beacon_info[14] = 'A';
+//	m_beacon_info[15] = 'A';
+//	m_beacon_info[16] = 'A';
 
-    err_code = ble_advdata_encode(&advdata, m_adv_data.adv_data.p_data, &m_adv_data.adv_data.len);
-    APP_ERROR_CHECK(err_code);
-    printf("elma\r\n");
+	err_code = ble_advdata_encode(&advdata, m_adv_data.adv_data.p_data,
+			&m_adv_data.adv_data.len);
+	APP_ERROR_CHECK(err_code);
+	printf("elma\r\n");
 
-    err_code = sd_ble_gap_adv_set_configure(&m_adv_handle, &m_adv_data, &m_adv_params);
-    APP_ERROR_CHECK(err_code);
-    printf("armut\r\n");
-}
-
-
-static void advertisement_update(void){
-	ret_code_t err_code = sd_ble_gap_adv_stop(m_adv_handle);
-	printf("stopped");
-//	memcpy(m_beacon_info, "ERKANERSOY",10);
-//	m_beacon_info[0] = 'E';
-//	m_beacon_info[1] = 'E';
-//	m_beacon_info[2] = 'E';
-//	m_beacon_info[3] = 'E';
-//	m_beacon_info[4] = 'E';
-//	m_beacon_info[5] = 'E';
-
-	m_beacon_info[10] = 'E';
-	m_beacon_info[11] = 'E';
-	m_beacon_info[12] = 'E';
-	m_beacon_info[13] = 'E';
-	m_beacon_info[14] = 'E';
-	m_beacon_info[15] = 'E';
-	m_beacon_info[16] = 'E';
-
-    err_code = sd_ble_gap_adv_set_configure(&m_adv_handle, &advdata, &m_adv_params);
-    printf("er: %x\r\n",err_code);
-    APP_ERROR_CHECK(err_code);
-    err_code = sd_ble_gap_adv_start(m_adv_handle, APP_BLE_CONN_CFG_TAG);
-    APP_ERROR_CHECK(err_code);
-
+	err_code = sd_ble_gap_adv_set_configure(&m_adv_handle, &m_adv_data,
+			&m_adv_params);
+	APP_ERROR_CHECK(err_code);
+	printf("armut\r\n");
 }
 
 //void setData(){
@@ -434,202 +399,156 @@ static void advertisement_update(void){
 
 /**@brief Function for starting advertising.
  */
-static void advertising_start(void)
-{
-    ret_code_t err_code;
+static void advertising_start(void) {
+	ret_code_t err_code;
 
-    err_code = sd_ble_gap_adv_start(m_adv_handle, APP_BLE_CONN_CFG_TAG);
-    APP_ERROR_CHECK(err_code);
+	err_code = sd_ble_gap_adv_start(m_adv_handle, APP_BLE_CONN_CFG_TAG);
+	APP_ERROR_CHECK(err_code);
 
-    err_code = bsp_indication_set(BSP_INDICATE_ADVERTISING);
-    APP_ERROR_CHECK(err_code);
+	err_code = bsp_indication_set(BSP_INDICATE_ADVERTISING);
+	APP_ERROR_CHECK(err_code);
 }
-
 
 /**@brief Function for initializing the BLE stack.
  *
  * @details Initializes the SoftDevice and the BLE event interrupt.
  */
-static void ble_stack_init(void)
-{
-    ret_code_t err_code;
+static void ble_stack_init(void) {
+	ret_code_t err_code;
 
-    err_code = nrf_sdh_enable_request();
-    APP_ERROR_CHECK(err_code);
+	err_code = nrf_sdh_enable_request();
+	APP_ERROR_CHECK(err_code);
 
-    // Configure the BLE stack using the default settings.
-    // Fetch the start address of the application RAM.
-    uint32_t ram_start = 0;
-    err_code = nrf_sdh_ble_default_cfg_set(APP_BLE_CONN_CFG_TAG, &ram_start);
-    APP_ERROR_CHECK(err_code);
+	// Configure the BLE stack using the default settings.
+	// Fetch the start address of the application RAM.
+	uint32_t ram_start = 0;
+	err_code = nrf_sdh_ble_default_cfg_set(APP_BLE_CONN_CFG_TAG, &ram_start);
+	APP_ERROR_CHECK(err_code);
 
-    // Enable BLE stack.
-    err_code = nrf_sdh_ble_enable(&ram_start);
-    APP_ERROR_CHECK(err_code);
+	// Enable BLE stack.
+	err_code = nrf_sdh_ble_enable(&ram_start);
+	APP_ERROR_CHECK(err_code);
 }
-
-
-
 
 /**@brief Function for the GAP initialization.
  *
  * @details This function sets up all the necessary GAP (Generic Access Profile) parameters of the
  *          device including the device name, appearance, and the preferred connection parameters.
  */
-static void gap_params_init(void)
-{
-    ret_code_t              err_code;
-    ble_gap_conn_params_t   gap_conn_params;
-    ble_gap_conn_sec_mode_t sec_mode;
+static void gap_params_init(void) {
+	ret_code_t err_code;
+	ble_gap_conn_params_t gap_conn_params;
+	ble_gap_conn_sec_mode_t sec_mode;
 
-    BLE_GAP_CONN_SEC_MODE_SET_OPEN(&sec_mode);
+	BLE_GAP_CONN_SEC_MODE_SET_OPEN(&sec_mode);
 
-    err_code = sd_ble_gap_device_name_set(&sec_mode,
-                                          (const uint8_t *)DEVICE_NAME,
-                                          strlen(DEVICE_NAME));
-    APP_ERROR_CHECK(err_code);
+	err_code = sd_ble_gap_device_name_set(&sec_mode,
+			(const uint8_t*) DEVICE_NAME, strlen(DEVICE_NAME));
+	APP_ERROR_CHECK(err_code);
 
+	/*err_code = sd_ble_gap_appearance_set(BLE_APPEARANCE_);
+	 APP_ERROR_CHECK(err_code); */
 
-       /*err_code = sd_ble_gap_appearance_set(BLE_APPEARANCE_);
-       APP_ERROR_CHECK(err_code); */
+	memset(&gap_conn_params, 0, sizeof(gap_conn_params));
 
-    memset(&gap_conn_params, 0, sizeof(gap_conn_params));
+	gap_conn_params.min_conn_interval = MIN_CONN_INTERVAL;
+	gap_conn_params.max_conn_interval = MAX_CONN_INTERVAL;
+	gap_conn_params.slave_latency = SLAVE_LATENCY;
+	gap_conn_params.conn_sup_timeout = CONN_SUP_TIMEOUT;
 
-    gap_conn_params.min_conn_interval = MIN_CONN_INTERVAL;
-    gap_conn_params.max_conn_interval = MAX_CONN_INTERVAL;
-    gap_conn_params.slave_latency     = SLAVE_LATENCY;
-    gap_conn_params.conn_sup_timeout  = CONN_SUP_TIMEOUT;
-
-    err_code = sd_ble_gap_ppcp_set(&gap_conn_params);
-    APP_ERROR_CHECK(err_code);
+	err_code = sd_ble_gap_ppcp_set(&gap_conn_params);
+	APP_ERROR_CHECK(err_code);
 }
 
-
 /**@brief Function for initializing logging. */
-static void log_init(void)
-{
-    ret_code_t err_code = NRF_LOG_INIT(NULL);
-    APP_ERROR_CHECK(err_code);
+static void log_init(void) {
+	ret_code_t err_code = NRF_LOG_INIT(NULL);
+	APP_ERROR_CHECK(err_code);
 
-    NRF_LOG_DEFAULT_BACKENDS_INIT();
+	NRF_LOG_DEFAULT_BACKENDS_INIT();
 }
 
 /**@brief Function for initializing LEDs. */
-static void leds_init(void)
-{
-    ret_code_t err_code = bsp_init(BSP_INIT_LEDS, NULL);
-    APP_ERROR_CHECK(err_code);
+static void leds_init(void) {
+	ret_code_t err_code = bsp_init(BSP_INIT_LEDS, NULL);
+	APP_ERROR_CHECK(err_code);
 }
-
 
 /**@brief Function for initializing timers. */
-static void timers_init(void)
-{
-    ret_code_t err_code = app_timer_init();
-    APP_ERROR_CHECK(err_code);
+static void timers_init(void) {
+	ret_code_t err_code = app_timer_init();
+	APP_ERROR_CHECK(err_code);
 }
-
 
 /**@brief Function for initializing power management.
  */
-static void power_management_init(void)
-{
-    ret_code_t err_code;
-    err_code = nrf_pwr_mgmt_init();
-    APP_ERROR_CHECK(err_code);
+static void power_management_init(void) {
+	ret_code_t err_code;
+	err_code = nrf_pwr_mgmt_init();
+	APP_ERROR_CHECK(err_code);
 }
-
 
 /**@brief Function for handling the idle state (main loop).
  *
  * @details If there is no pending log operation, then sleep until next the next event occurs.
  */
-static void idle_state_handle(void)
-{
+static void idle_state_handle(void) {
 
-    if (NRF_LOG_PROCESS() == false)
-    {
-        nrf_pwr_mgmt_run();
-    }
+	if (NRF_LOG_PROCESS() == false) {
+		nrf_pwr_mgmt_run();
+	}
 }
 
 #define UART_HWFC APP_UART_FLOW_CONTROL_DISABLED
 
-
 /**
  * @brief Function for application main entry.
  */
-int main(void)
-{
-    uint32_t err_code;
+int main(void) {
+	uint32_t err_code;
 
-    // Initialize.
-    log_init();
-    timers_init();
-    leds_init();
-    power_management_init();
-    uint8_t b_single = 0;
+	// Initialize.
+	log_init();
+	timers_init();
+	leds_init();
+	power_management_init();
+	uint8_t b_single = 0;
 
-    const app_uart_comm_params_t comm_params =
-    	      {
-    	          RX_PIN_NUMBER,
-    	          TX_PIN_NUMBER,
-    	          RTS_PIN_NUMBER,
-    	          CTS_PIN_NUMBER,
-    	          UART_HWFC,
-    	          false,
-    	#if defined (UART_PRESENT)
+	const app_uart_comm_params_t comm_params = { RX_PIN_NUMBER, TX_PIN_NUMBER,
+			RTS_PIN_NUMBER, CTS_PIN_NUMBER,
+			UART_HWFC, false,
+#if defined (UART_PRESENT)
     	          NRF_UART_BAUDRATE_115200
     	#else
-    	          NRF_UARTE_BAUDRATE_115200
-    	#endif
-    	      };
+			NRF_UARTE_BAUDRATE_115200
+#endif
+			};
 
-    	    APP_UART_FIFO_INIT(&comm_params,
-    	                         UART_RX_BUF_SIZE,
-    	                         UART_TX_BUF_SIZE,
-								 uart_event_handle,
-    	                         APP_IRQ_PRIORITY_LOWEST,
-    	                         err_code);
+	APP_UART_FIFO_INIT(&comm_params,
+	UART_RX_BUF_SIZE,
+	UART_TX_BUF_SIZE, uart_event_handle, APP_IRQ_PRIORITY_LOWEST, err_code);
 
-    	    APP_ERROR_CHECK(err_code);
+	APP_ERROR_CHECK(err_code);
 
-    ble_stack_init();
+	ble_stack_init();
 
-    gap_params_init();
-    advertising_init();
+	gap_params_init();
+	advertising_init();
 
+	// Start execution.
+	NRF_LOG_INFO("Beacon example started.");
+	printf("Beacon started\r\n");
+	uint8_t cr;
 
-    // Start execution.
-    NRF_LOG_INFO("Beacon example started.");
-    printf("Beacon started\r\n");
-    uint8_t cr;
+	advertising_start();
 
-    // 	while (app_uart_get(&cr) != NRF_SUCCESS);
+	// Enter main loop.
+	for (;;) {
 
-    advertising_start();
+		idle_state_handle();
 
-//    uint8_t cr;
-//	while (app_uart_get(&cr) != NRF_SUCCESS);
-	//printf("got it\r\n");
-    // Enter main loop.
-    for (;; )
-    {
-//    	if(app_uart_get(&cr) == NRF_SUCCESS){
-//    		printf("mandalina\r\n");
-//    	//if(b_single == 0){
-//    		//memcpy(m_beacon_info, "ERKANERSOY",10);
-//    		//advertising_init();
-//    		//advertisement_update();
-//    		//setData();
-//    		//b_single = 1;
-//    	}
-
-        idle_state_handle();
-
-    }
+	}
 }
-
 
 /**
  * @}
